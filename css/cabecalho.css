@@ -63,8 +63,8 @@
 
 .menu-hamburguer span {
     display: block;
-    width: 100%;
     height: 3px;
+    width: 100%;
     background-color: var(--cor-neutra-clara)
 }
 
@@ -103,11 +103,31 @@
     .cabecalho .menu-principal ul {
         flex-direction: row;
     }
+
+    .menu-hamburguer {
+        display: none;
+    }
+
+    .cabecalho .menu-principal ul {
+        gap: 1rem;
+    }
+
+    .cabecalho ul li a {
+        font-size: 0.85rem;
+    }
 }
 
 @media(min-width: 1170px) {
     .cabecalho {
         max-width: 1170px;
         margin: 0 auto;
+    }
+
+    .cabecalho .menu-principal ul {
+        gap: 2rem;
+    }
+
+    .cabecalho ul li a {
+        font-size: 1rem;
     }
 }
