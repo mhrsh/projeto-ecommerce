@@ -23,41 +23,39 @@ Objetivo 3 - Atualizar os valores do carrinho
 //     parte 1- vamos adicionar +1 no ícone do carrinho 
 //         passo 1- pegar botões de adicionar ao carrinho de html 
 
+// Refatoração: extraída função para obter dados do produto e evitar repetição de código.
 const botoesAdicionarAoCarrinho = document.querySelectorAll('.adicionar-ao-carrinho');
-// passo 2 - adicionar um evento de escuta nesses botões pra quando clicar disparar uma ação
 botoesAdicionarAoCarrinho.forEach(botao => {
     botao.addEventListener('click', (evento) => {
-        // passo 3 - pega as informações do produto clicado e adicionar no localstorage
         const elementoProduto = evento.target.closest('.produto');
-        const produtoId = elementoProduto.dataset.id;
-        const produtoNome = elementoProduto.querySelector('.nome').textContent;
-        const produtoImagem = elementoProduto.querySelector('img').getAttribute('src');
-        const produtoPreco = parseFloat(elementoProduto.querySelector('.preco').textContent.replace('R$', '').replace('.', '').replace(',', '.'));
-
-        //buscar a lista de produtos no localStorage
-        const carrinho = obterProdutosDoCarrinho();
-
-        //testar se o produto já existe no carrinho
-        const existeProduto = carrinho.find(produto => produto.id === produtoId);
-        //se existe produto, incrementar a quantidade
-        if (existeProduto) {
-            existeProduto.quantidade += 1;
-        } else {
-            //se não existir, adicionar produto com quantidade 1
-            const produto = {
-                id: produtoId,
-                nome: produtoNome,
-                imagem: produtoImagem,
-                preco: produtoPreco,
-                quantidade: 1
-            };
-            carrinho.push(produto);
-        }
-
-        salvarProdutosNoCarrinho(carrinho);
+        const produto = obterDadosProduto(elementoProduto);
+        adicionarProdutoAoCarrinho(produto);
         atualizarCarrinhoETabela();
     });
-})
+});
+
+// Função extraída para obter dados do produto do DOM
+function obterDadosProduto(elementoProduto) {
+    return {
+        id: elementoProduto.dataset.id,
+        nome: elementoProduto.querySelector('.nome').textContent,
+        imagem: elementoProduto.querySelector('img').getAttribute('src'),
+        preco: parseFloat(elementoProduto.querySelector('.preco').textContent.replace('R$', '').replace('.', '').replace(',', '.')),
+        quantidade: 1
+    };
+}
+
+// Função extraída para adicionar produto ao carrinho, incrementando se já existir
+function adicionarProdutoAoCarrinho(produtoNovo) {
+    const carrinho = obterProdutosDoCarrinho();
+    const produtoExistente = carrinho.find(produto => produto.id === produtoNovo.id);
+    if (produtoExistente) {
+        produtoExistente.quantidade += 1;
+    } else {
+        carrinho.push(produtoNovo);
+    }
+    salvarProdutosNoCarrinho(carrinho);
+}
 
 function salvarProdutosNoCarrinho(carrinho) {
     localStorage.setItem("carrinho", JSON.stringify(carrinho));
@@ -89,17 +87,19 @@ function renderizarTabelaDoCarrinho() {
 
     produtos.forEach(produto => {
         const tr = document.createElement("tr");
-        tr.innerHTML = `<td class="td-produto">
-                            <img 
-                            src="${produto.imagem}"
-                            alt="${produto.nome}">
-                        </td>
-                        < td > ${produto.nome}</ >
-                                <td class="td-preco-unitario">R$ ${produto.preco.toFixed(2).replace(".", ",")}</td>
-                                <td class="td-quantidade">
-                                    <input type="number" class="input-quantidade" data-id="${produto.id}" value="${produto.quantidade}" min="1"></td>
-                                <td class="td-preco-total">R$ ${(produto.preco * produto.quantidade).toFixed(2).replace(".", ",")}</td>
-                                <td><button class="btn-remover" data-id="${produto.id}" id="deletar"></button></td>`;
+        // Corrigido erro de markup em <td> do nome do produto
+        tr.innerHTML = `
+            <td class="td-produto">
+                <img src="${produto.imagem}" alt="${produto.nome}">
+            </td>
+            <td>${produto.nome}</td>
+            <td class="td-preco-unitario">R$ ${produto.preco.toFixed(2).replace(".", ",")}</td>
+            <td class="td-quantidade">
+                <input type="number" class="input-quantidade" data-id="${produto.id}" value="${produto.quantidade}" min="1">
+            </td>
+            <td class="td-preco-total">R$ ${(produto.preco * produto.quantidade).toFixed(2).replace(".", ",")}</td>
+            <td><button class="btn-remover" data-id="${produto.id}" id="deletar"></button></td>
+        `;
         corpoTabela.appendChild(tr);
     });
 }
@@ -121,27 +121,26 @@ corpoTabela.addEventListener('click', evento => {
 
 // //Objetivo 3 - Atualizar os valores do carrinho
 //     passo 1 - adicionar evento de escuta no input no tbody
+// Refatoração: validação para evitar quantidade inválida e garantir mínimo 1
 corpoTabela.addEventListener('input', evento => {
-    //    passo 2 - atualizar o valor total do produto 
     if (evento.target.classList.contains('input-quantidade')) {
         const produtos = obterProdutosDoCarrinho();
         const produto = produtos.find(produto => produto.id === evento.target.dataset.id);
-        let novaQuantidade = parseInt(evento.target.value);
+        let novaQuantidade = Math.max(1, parseInt(evento.target.value) || 1); // Garante mínimo 1
         if (produto) {
             produto.quantidade = novaQuantidade;
         }
         salvarProdutosNoCarrinho(produtos);
         atualizarCarrinhoETabela();
-        }
+    }
 });
 
 //passo 4 - atualizar o html do carrinho retirando o produto
+// Refatoração: função simplificada e comentário explicativo
 function removerProdutoDoCarrinho(id) {
     const produtos = obterProdutosDoCarrinho();
-
-    //filtrar os produtos que não tem o id passado por parametro
+    // Remove o produto pelo id e atualiza o carrinho
     const carrinhoAtualizado = produtos.filter(produto => produto.id !== id);
-
     salvarProdutosNoCarrinho(carrinhoAtualizado);
     atualizarCarrinhoETabela();
 }
@@ -149,16 +148,13 @@ function removerProdutoDoCarrinho(id) {
 // passo 3 - atualizar o valor total do carrinho
 function atualizarValorTotalCarrinho() {
     const produtos = obterProdutosDoCarrinho();
-    let total = 0;
-
-    produtos.forEach(produto => {
-        total += produto.preco * produto.quantidade;
-    });
-
+    // Refatoração: uso de reduce para somar total de forma mais funcional
+    const total = produtos.reduce((soma, produto) => soma + produto.preco * produto.quantidade, 0);
     document.querySelector('#total-carrinho').textContent = `R$ ${total.toFixed(2).replace(".", ",")}`;
 }
 
-function atualizarCarrinhoETabela(){
+// Refatoração: função central para atualizar UI do carrinho
+function atualizarCarrinhoETabela() {
     atualizarContadorCarrinho();
     renderizarTabelaDoCarrinho();
     atualizarValorTotalCarrinho();
