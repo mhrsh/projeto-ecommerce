@@ -161,3 +161,43 @@ function atualizarCarrinhoETabela() {
 }
 
 atualizarCarrinhoETabela();
+
+async function calcularFrete(cep) {
+    const url = 'https://mhrsh.app.n8n.cloud/webhook-test/d032609a-d83b-4cd7-8465-8b0b04ea978f';
+    try {
+        const produtos = obterProdutosDoCarrinho();
+        const products = produtos.map(produto => ({
+            quantity: produto.quantidade,
+            height: produto.altura || 4,
+            lenght: produto.comprimento || 30,
+            width: produto.largura || 25,
+            weight: produto.peso || 0.25
+        }));
+
+        const resposta = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ cep, products })
+        });
+
+        if (!resposta.ok) throw new Error('Erro ao calcular frete');
+        const resultado = await resposta.json();
+        console.log(resultado);
+        return resultado.frete;
+    } catch (error) {
+        console.error('Erro ao calcular frete:', error);
+        return null;
+    }
+}
+
+const btnCalcularFrete = document.getElementById('btn-calcular-frete');
+const inputCep = document.getElementById('input-cep');
+const valorFrete = document.getElementById('valor-frete');
+
+btnCalcularFrete.addEventListener('click', async () => {
+    const cep = inputCep.value.trim();
+    valorFrete.textContent = "Calculando...";
+    const frete = await calcularFrete(cep);
+});
