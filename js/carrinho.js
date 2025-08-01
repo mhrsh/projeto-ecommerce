@@ -163,16 +163,23 @@ function atualizarCarrinhoETabela() {
 atualizarCarrinhoETabela();
 
 async function calcularFrete(cep) {
-    const url = 'https://mhrsh.app.n8n.cloud/webhook-test/d032609a-d83b-4cd7-8465-8b0b04ea978f';
+    const url = 'https://mhrsh.app.n8n.cloud/webhook/d032609a-d83b-4cd7-8465-8b0b04ea978f';
     try {
+
+        const medidasResponse = await fetch('./js/medidas.js');
+        const medidas = await medidasResponse.json();
+
         const produtos = obterProdutosDoCarrinho();
-        const products = produtos.map(produto => ({
-            quantity: produto.quantidade,
-            height: produto.altura || 4,
-            lenght: produto.comprimento || 30,
-            width: produto.largura || 25,
-            weight: produto.peso || 0.25
-        }));
+        const products = produtos.map(produto => {
+            const medida = medidas.find(m => m.id === produto.id);
+            return {
+                quantidade: produto.quantidade,
+                height: medida ? medida.height : 4,
+                length: medida ? medida.length : 30,
+                width: medida ? medida.width : 25,
+                weight: medida ? medida.weight : 0.25
+            };
+        });
 
         const resposta = await fetch(url, {
             method: 'POST',
